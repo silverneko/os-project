@@ -42,4 +42,6 @@ void logger(const char buffer[], int len) {
 
 void fifoSchedule(int N, std::vector<Job> jobs);
 
+void rrSchedule(int N, std::vector<Job> jobs);
+
 #endif

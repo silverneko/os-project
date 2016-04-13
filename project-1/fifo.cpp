@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int spawnProcess(const Job& job);
+static int spawnProcess(const Job& job);
 
 void fifoSchedule(int N, vector<Job> jobs) {
   sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
@@ -38,9 +38,9 @@ void fifoSchedule(int N, vector<Job> jobs) {
       waitTimeQuantum;
       ++T;
     }
-    job.pid = spawnProcess(job);
     struct sched_param param;
     param.sched_priority = 99-i;
+    job.pid = spawnProcess(job);
     if (sched_setscheduler(job.pid, SCHED_FIFO, &param) != 0) {
       assert(0 && "sched_setscheduler() failed.");
     }

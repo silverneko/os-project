@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -O0 -Wall
 
 target = main
-objects = main.o fifo.o
+objects = main.o fifo.o rr.o
 
 all: $(target)
 

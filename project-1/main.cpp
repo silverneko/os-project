@@ -39,6 +39,7 @@ int main(int argc, char * argv[]) {
       fifoSchedule(N, joblist);
       break;
     case RR:
+      rrSchedule(N, joblist);
       break;
     case SJF:
       break;
