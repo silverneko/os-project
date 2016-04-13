@@ -16,10 +16,13 @@
 using namespace std;
 
 static int spawnProcess(const Job& job);
+
+// utility functions to "wake" and "put-to-sleep" a process
 static void putToSleep(int pid);
 static void wakeUp(int pid);
 
 void rrSchedule(int N, vector<Job> jobs) {
+  // first sort by readyTime and executionTime
   sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
     if (a.readyTime == b.readyTime) {
       return a.executionTime < b.executionTime;
@@ -35,6 +38,7 @@ void rrSchedule(int N, vector<Job> jobs) {
     assert(0 && "sched_setaffinity() failed.");
   }
 
+  // maintain a queue of process for RR scheduling
   queue<int> readyQueue;
   int T = 0;
   int upTime = 0;
@@ -58,19 +62,21 @@ void rrSchedule(int N, vector<Job> jobs) {
       if (waitpid(pid, NULL, WNOHANG) == 0) {
         // pid is still "alive"
         if (upTime >= 500) {
-          // time expired
+          // pid time expired
+          // put pid to the end of queue
           putToSleep(pid);
           readyQueue.push(pid);
           running = 0;
         }
       } else {
         // pid has exited
+        // no zombie
         running = 0;
         --jobsLeft;
       }
     }
     if (!running) {
-      // Nobody is using the cpu
+      // Nobody is "running" (using the cpu)
       // wake a process up
       if (!readyQueue.empty()) {
         int pid = readyQueue.front();

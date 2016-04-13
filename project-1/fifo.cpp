@@ -17,6 +17,7 @@ using namespace std;
 static int spawnProcess(const Job& job);
 
 void fifoSchedule(int N, vector<Job> jobs) {
+  // first sort by readyTime and executionTime
   sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
     if (a.readyTime == b.readyTime) {
       return a.executionTime < b.executionTime;
@@ -38,6 +39,7 @@ void fifoSchedule(int N, vector<Job> jobs) {
       waitTimeQuantum;
       ++T;
     }
+    // put process into the FIFO queue as soon as it's ready
     struct sched_param param;
     param.sched_priority = 99-i;
     job.pid = spawnProcess(job);
@@ -45,6 +47,7 @@ void fifoSchedule(int N, vector<Job> jobs) {
       assert(0 && "sched_setscheduler() failed.");
     }
   }
+  // zombie waiter
   for (int i = 0; i < N; ++i) {
     wait(NULL);
   }
