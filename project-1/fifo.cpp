@@ -10,6 +10,7 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sched.h>
 
 using namespace std;
 
@@ -24,6 +25,12 @@ void fifoSchedule(int N, vector<Job> jobs) {
     }
   });
 
+  cpu_set_t cpuMask;
+  CPU_ZERO(&cpuMask);
+  CPU_SET(0, &cpuMask);
+  if (sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuMask) != 0) {
+    assert(0 && "sched_setaffinity() failed.");
+  }
   int T = 0;
   for (int i = 0; i < N; ++i) {
     Job &job = jobs[i];
@@ -32,6 +39,13 @@ void fifoSchedule(int N, vector<Job> jobs) {
       ++T;
     }
     job.pid = spawnProcess(job);
+    struct sched_param param;
+    param.sched_priority = 99-i;
+    if (sched_setscheduler(job.pid, SCHED_FIFO, &param) != 0) {
+      assert(0 && "sched_setscheduler() failed.");
+    }
+  }
+  for (int i = 0; i < N; ++i) {
     wait(NULL);
   }
 }
@@ -44,10 +58,16 @@ int spawnProcess(const Job& job) {
     return pid;
   } else {
     // Child
-    printf("%s %d\n", job.name.c_str(), getpid());
-    int execTime = job.executionTime;
     double startTime = getTime();
-    while(execTime > 0) {
+    printf("%s %d\n", job.name.c_str(), getpid());
+    cpu_set_t cpuMask;
+    CPU_ZERO(&cpuMask);
+    CPU_SET(1, &cpuMask);
+    if (sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuMask) != 0) {
+      assert(0 && "sched_setaffinity() failed.");
+    }
+    int execTime = job.executionTime;
+    while (execTime > 0) {
       waitTimeQuantum;
       --execTime;
     }
