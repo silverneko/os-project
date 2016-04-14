@@ -41,6 +41,14 @@ enum STATE{
 	STATE_FINISH
 }
 
+void setPriority(int pid, int priority){
+	schud_param param;
+	sched_getparam(pid, &param);
+	param.sched_priority = priority;
+	sched_setparam(pid, &param);
+}
+
+
 void sjfSchedule(int n, vector<Job> job){
 	//shortest job first:
 	//every time a job ends, execute the next shortest job.
@@ -59,6 +67,7 @@ void sjfSchedule(int n, vector<Job> job){
 	int finishJob = 0;
 	int timeNow = 0;
 	int runningTime[n];
+	int jobNow = -1;
 	int jobOrder[n];
 	int jobState[n];
 	for(int i=0;i<n;i++){
@@ -66,41 +75,81 @@ void sjfSchedule(int n, vector<Job> job){
 		jobState[i] = STATE_WAITING;	
 		runningTime[i] = 0;
 	}
+
 	while(finishJob<n){
+		//if any job finishes
+		if(jobNow==-1){
+			
+		}
+		int nextJob = -1;
+		int nextTime = 1000000;
+
 		for(int i=0;i<n;i++){
 			switch(jobState[i]){
 				case STATE_WAITING:
 					//job has not been forked
-					if(timeNow==job[i].readyTime){
+					if(timeNow>=job[i].readyTime){
 						//fork
-
-						jobState[i] = STATE_READY;
+						int pid = fork();
+						if(pid!=0){
+							job[i].pid = pid;
+							jobState[i] = STATE_READY;
+							setPriority(pid, 99);
+							if(job[i].executionTime<nextTime){
+								nextJob = i;
+								nextTime = job[i].executionTIme;
+							}
+						}
+						else{
+							for(int i=0;i<job[i].executionTime;i++){
+								waitTimeQuantum;
+							}
+							//TODO: print message to kernel
+							return 0;
+						}
 					}
 					break;
 				case STATE_READY:
 					//job created, but put to wait
+					if(job[i].executionTime<nextTime){
+						nextJob = i;
+						nextTime = job[i].executionTIme;
+					}
 					break;
 				case STATE_RUNNING:
 					//job started
+					if(runningTime[i]>=job[i].executionTime){
+						jobNow = -1;
+						jobState[i] = STATE_FINISH;
+						jobFinish++;
+					}
+					else{
+						runningTime[i]++;
+					}
 					break;
-				/*
+					/*
 					//job has been paused
-					no need for non preemptive SJF.
+					//no need for non preemptive SJF.
 				case STATE_PAUSE:
 					break;
-				*/
+					*/
 				case STATE_FINISH:
 					//job finished
 					break;
 				default:
-				//fprintf(stderr, "WTF\n");
+					//fprintf(stderr, "WTF\n");
+			}
+			//if no job is running and there are jobs ready
+			if(jobNow==-1&&nextJob!=-1){
+				jobNow = nextJob;
+				jobState[nextJob] = STATE_RUNNING;
+				setPriority(job[nextJob].pid, 0);
 			}
 		}
 
-
-		//next time
+		//next quantum
 		waitTimeQuantum;
-		time++;
+		timeNow++;
 	}
 	
 	
