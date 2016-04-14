@@ -39,10 +39,10 @@ enum STATE{
 	STATE_RUNNING,
 	STATE_PAUSE,
 	STATE_FINISH
-}
+};
 
 void setPriority(int pid, int priority){
-	schud_param param;
+	sched_param param;
 	sched_getparam(pid, &param);
 	param.sched_priority = priority;
 	sched_setparam(pid, &param);
@@ -64,9 +64,9 @@ void sjfSchedule(int n, vector<Job> job){
 	//use a buffer to store the time for every command
 
 
-	int finishJob = 0;
 	int timeNow = 0;
 	int runningTime[n];
+	int jobFinish = 0;
 	int jobNow = -1;
 	int jobOrder[n];
 	int jobState[n];
@@ -76,7 +76,7 @@ void sjfSchedule(int n, vector<Job> job){
 		runningTime[i] = 0;
 	}
 
-	while(finishJob<n){
+	while(jobFinish<n){
 		//if any job finishes
 		if(jobNow==-1){
 			
@@ -97,7 +97,7 @@ void sjfSchedule(int n, vector<Job> job){
 							setPriority(pid, 99);
 							if(job[i].executionTime<nextTime){
 								nextJob = i;
-								nextTime = job[i].executionTIme;
+								nextTime = job[i].executionTime;
 							}
 						}
 						else{
@@ -105,7 +105,7 @@ void sjfSchedule(int n, vector<Job> job){
 								waitTimeQuantum;
 							}
 							//TODO: print message to kernel
-							return 0;
+							return;
 						}
 					}
 					break;
@@ -113,7 +113,7 @@ void sjfSchedule(int n, vector<Job> job){
 					//job created, but put to wait
 					if(job[i].executionTime<nextTime){
 						nextJob = i;
-						nextTime = job[i].executionTIme;
+						nextTime = job[i].executionTime;
 					}
 					break;
 				case STATE_RUNNING:
@@ -138,26 +138,19 @@ void sjfSchedule(int n, vector<Job> job){
 					break;
 				default:
 					//fprintf(stderr, "WTF\n");
-			}
-			//if no job is running and there are jobs ready
-			if(jobNow==-1&&nextJob!=-1){
-				jobNow = nextJob;
-				jobState[nextJob] = STATE_RUNNING;
-				setPriority(job[nextJob].pid, 0);
+					break;
 			}
 		}
-
+		//if no job is running and there are jobs ready
+		if(jobNow==-1&&nextJob!=-1){
+			jobNow = nextJob;
+			jobState[nextJob] = STATE_RUNNING;
+			setPriority(job[nextJob].pid, 0);
+		}
 		//next quantum
 		waitTimeQuantum;
 		timeNow++;
 	}
-	
-	
-	
-
-
-	
-	
-	
-	
 }
+	
+
