@@ -42,6 +42,7 @@ int main(int argc, char * argv[]) {
       rrSchedule(N, joblist);
       break;
     case SJF:
+	sjfSchedule(N, joblist);
       break;
     case PSJF:
       break;
