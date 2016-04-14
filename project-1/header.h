@@ -44,4 +44,6 @@ void fifoSchedule(int N, std::vector<Job> jobs);
 
 void rrSchedule(int N, std::vector<Job> jobs);
 
+void sjfScheduler(int N, std::vector<Job> jobs);
+
 #endif
