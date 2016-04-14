@@ -12,4 +12,4 @@ $(target): $(objects)
 $(objects): header.h
 
 clean:
-	rm $(target) $(objects)
+	rm -rf $(target) $(objects)
