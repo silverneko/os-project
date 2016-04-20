@@ -32,6 +32,20 @@ public:
   Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {}
 };
 */
+class CmpExe{
+public: 
+	bool operator()(Job a, Job b){
+		return a.readyTime < b.readyTime;
+	}
+};
+
+class CmpReady{
+public:
+	bool operator()(Job a, Job b){
+		return a.executionTime < b.executionTime;
+	}
+
+};
 
 enum STATE{
 	STATE_WAITING,
@@ -70,12 +84,32 @@ void sjfSchedule(int n, vector<Job> job){
 	int jobNow = -1;
 	int jobOrder[n];
 	int jobState[n];
+
+
+	priority_queue<Job, vector<Job>, CmpReady> CreateQueue;
+	priority_queue<Job, vector<Job>, CmpExe> ReadyQueue;
+
 	for(int i=0;i<n;i++){
 		jobOrder[i] = 0;
 		jobState[i] = STATE_WAITING;	
 		runningTime[i] = 0;
+
+		CreateQueue.push(job[i]);
+		ReadyQueue.push(job[i]);
+	}
+	printf("Create queue:\n");
+	while(!CreateQueue.empty()){
+		Job job = CreateQueue.top();
+		printf("Job %s ready %d exe %d\n", job.name.c_str(), job.readyTime, job.executionTime);
+		CreateQueue.pop();
 	}
 
+	printf("Ready queue:\n");
+	while(!ReadyQueue.empty()){
+		Job job = ReadyQueue.top();
+		printf("Job %s ready %d exe %d\n", job.name.c_str(), job.readyTime, job.executionTime);
+		ReadyQueue.pop();
+	}
 	while(jobFinish<n){
 		//if any job finishes
 		if(jobNow==-1){
@@ -99,6 +133,7 @@ void sjfSchedule(int n, vector<Job> job){
 								nextJob = i;
 								nextTime = job[i].executionTime;
 							}
+    							printf("%s %d\n", job[i].name.c_str(), pid);
 						}
 						else{
 							for(int i=0;i<job[i].executionTime;i++){
@@ -119,6 +154,8 @@ void sjfSchedule(int n, vector<Job> job){
 				case STATE_RUNNING:
 					//job started
 					if(runningTime[i]>=job[i].executionTime){
+						waitpid(job[i].pid, NULL, 0);
+						printf("Job %d finished at i = %d\n", i, timeNow);
 						jobNow = -1;
 						jobState[i] = STATE_FINISH;
 						jobFinish++;
