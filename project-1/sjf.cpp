@@ -17,10 +17,12 @@ using namespace std;
 
 //SJF by Sean
 
+//comparitors for priority queue
 class CmpExe{
 public: 
 	bool operator()(Job *a, Job *b){
-		return a->executionTime > b->executionTime;
+		if(a->executionTime != b->executionTime)return a->executionTime > b->executionTime;
+		return a->readyTime > b->readyTime;
 	}
 };
 
@@ -53,13 +55,6 @@ void wakeup(int pid){
 	sched_setscheduler(pid, SCHED_FIFO, &param);
 }
 
-void setPriority(int pid, int priority){
-	sched_param param;
-	sched_getparam(pid, &param);
-	param.sched_priority = priority;
-	sched_setscheduler(pid, SCHED_FIFO, &param);
-}
-
 void sjfSchedule(int n, vector<Job> job){
 	//shortest job first:
 	//every time a job ends, execute the next shortest job.
@@ -81,12 +76,12 @@ void sjfSchedule(int n, vector<Job> job){
 	for(int i=0;i<n;i++){
 		createQueue.push(&job[i]);
 	}
-	wakeup(0);
+	wakeup(getpid());
 	setCpu(getpid(), 0);
+
 	//schudule all jobs
 	while(jobFinish<n){
-	
-		while(!createQueue.empty()){
+		while(!createQueue.empty()){   
 			Job *nextJob = createQueue.top();
 			//spawn processes, set priority to lowest to idle them
 			if(nextJob->readyTime<=timeNow){
@@ -96,18 +91,15 @@ void sjfSchedule(int n, vector<Job> job){
 				int workTime = nextJob->executionTime;
 				int pid = fork();
 				if(pid!=0){
-					nextJob->pid = pid;
-					//printf("spawn %s\n", nextJob->name.c_str());
 					setCpu(pid, 1);
 					idle(pid);
+					nextJob->pid = pid;
 				}
 				else{
-					printf("%s %d\n", nextJob->name.c_str() , getpid());
+					printf("%s %d\n", nextJob->name.c_str(), getpid());
 					for(int t=0;t<workTime;t++){
-						//printf("%s %d\n", nextJob->name.c_str() , t);
 						waitTimeQuantum;
 					}
-					//TODO: print message to kernel
 					double endTime = getTime();
     				char buffer[512];
     				sprintf(buffer, "[Project1] %d %.9f %.9f", getpid(), beginTime, endTime);
@@ -121,15 +113,6 @@ void sjfSchedule(int n, vector<Job> job){
 		}//end while createQueue
 
 		//process readyQueue
-		if(jobNow==NULL){
-			if(!readyQueue.empty()){
-				jobNow = readyQueue.top();
-				readyQueue.pop();
-				//printf("wakeup %s will execute %d\n", jobNow->name.c_str(), jobNow->executionTime);
-				wakeup(jobNow->pid);
-			}
-		}
-
 		if(jobNow!=NULL){
 			if(jobNow->runningTime>=jobNow->executionTime){
 				waitpid(jobNow->pid, NULL, 0);
@@ -140,10 +123,18 @@ void sjfSchedule(int n, vector<Job> job){
 				jobNow->runningTime++;
 			}
 		}
-
-
+		if(jobNow==NULL){
+			if(!readyQueue.empty()){
+				jobNow = readyQueue.top();
+				readyQueue.pop();
+				wakeup(jobNow->pid);
+			}
+		}
+		//idle low priority processes
+		for(int i=0;i<n;i++){
+			if(&job[i]!=jobNow)idle(job[i].pid);
+		}
 		//next quantum
-		//printf("main %d\n", timeNow);
 		waitTimeQuantum;
 		timeNow++;
 	}
