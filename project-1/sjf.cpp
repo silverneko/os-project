@@ -87,15 +87,15 @@ void sjfSchedule(int n, vector<Job> job){
 			if(nextJob->readyTime<=timeNow){
 				createQueue.pop();
 				readyQueue.push(nextJob);
-				double beginTime = getTime();
 				int workTime = nextJob->executionTime;
 				int pid = fork();
 				if(pid!=0){
 					setCpu(pid, 1);
-					idle(pid);
+					//idle(pid);
 					nextJob->pid = pid;
 				}
 				else{
+					double beginTime = getTime();
 					printf("%s %d\n", nextJob->name.c_str(), getpid());
 					for(int t=0;t<workTime;t++){
 						waitTimeQuantum;
