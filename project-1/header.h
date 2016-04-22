@@ -3,9 +3,17 @@
 
 #include <string>
 #include <vector>
-
-#include <sys/time.h>
 #include <time.h>
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+
+#define __NR_mysyscall 327
 
 #define waitTimeQuantum { volatile unsigned long i; for(i=0;i<1000000UL;i++);}
 
@@ -35,7 +43,11 @@ double getTime() {
 
 void logger(const char buffer[], int len) {
   // TODO output with printk
+#ifndef DEMO
   printf("%s\n", buffer);
+#else
+  syscall(__NR_mysyscall, buffer, len);
+#endif
 }
 
 }

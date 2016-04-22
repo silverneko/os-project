@@ -1,8 +1,14 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -O0 -Wall
 
+ifdef DEMO
+CXXFLAGS += -D DEMO
+endif
+
 target = main
 objects = main.o fifo.o rr.o
+
+.PHONY: all clean
 
 all: $(target)
 
