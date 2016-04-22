@@ -21,9 +21,12 @@ public:
   std::string name;
   int readyTime;
   int executionTime;
+  int runningTime;
   int pid;
   Job() {}
-  Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {}
+  Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {
+  	runningTime = 0;
+  }
 };
 
 namespace {

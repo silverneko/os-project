@@ -15,176 +15,135 @@
 
 using namespace std;
 
-
 //SJF by Sean
 
-#define waitTimeQuantum { volatile unsigned long i; for(i=0;i<1000000UL;i++);}
-
-//prototype
-/*
-class Job {
-public:
-  std::string name;
-  int readyTime;
-  int executionTime;
-  int pid;
-  Job() {}
-  Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {}
-};
-*/
 class CmpExe{
 public: 
-	bool operator()(Job a, Job b){
-		return a.readyTime < b.readyTime;
+	bool operator()(Job *a, Job *b){
+		return a->executionTime > b->executionTime;
 	}
 };
 
 class CmpReady{
 public:
-	bool operator()(Job a, Job b){
-		return a.executionTime < b.executionTime;
+	bool operator()(Job *a, Job *b){
+		return a->readyTime > b->readyTime;
 	}
 
 };
 
-enum STATE{
-	STATE_WAITING,
-	STATE_READY,
-	STATE_RUNNING,
-	STATE_PAUSE,
-	STATE_FINISH
-};
+void setCpu(int pid, int cpuId){
+	cpu_set_t cpuMask;
+    CPU_ZERO(&cpuMask);
+    CPU_SET(cpuId, &cpuMask);
+    sched_setaffinity(pid, sizeof(cpu_set_t), &cpuMask);
+}
+
+void idle(int pid){
+	sched_param param;
+	sched_getparam(pid, &param);
+	param.sched_priority = 0;
+	sched_setscheduler(pid, SCHED_IDLE, &param);
+}
+
+void wakeup(int pid){
+	sched_param param;
+	sched_getparam(pid, &param);
+	param.sched_priority = 1;
+	sched_setscheduler(pid, SCHED_FIFO, &param);
+}
 
 void setPriority(int pid, int priority){
 	sched_param param;
 	sched_getparam(pid, &param);
 	param.sched_priority = priority;
-	sched_setparam(pid, &param);
+	sched_setscheduler(pid, SCHED_FIFO, &param);
 }
-
 
 void sjfSchedule(int n, vector<Job> job){
 	//shortest job first:
 	//every time a job ends, execute the next shortest job.
 	//never preempt: no need to set schuduler
 
-	//ver1.0(now)):
-	//use realtime scheduling
-	//calculate the priority when running
-
-	//TODO:
-	//ver2.0:
-	//optimize: calculate everything before started
-	//use a buffer to store the time for every command
-
+	//implementation
+	//uses 2 queues: readyQueue and createQueue
+	//they are sorted according to the readyTime and executionTime, respectively
+	//in the beginning, all process are in the createQueue
+	//when the readyTime has come, a process is put to the readyQueue
+	//when no process is running, the first process in the readyQueue will start to execute
 
 	int timeNow = 0;
-	int runningTime[n];
 	int jobFinish = 0;
-	int jobNow = -1;
-	int jobOrder[n];
-	int jobState[n];
-
-
-	priority_queue<Job, vector<Job>, CmpReady> CreateQueue;
-	priority_queue<Job, vector<Job>, CmpExe> ReadyQueue;
-
+	Job *jobNow = NULL;
+	priority_queue<Job*, vector<Job*>, CmpReady> createQueue;
+	priority_queue<Job*, vector<Job*>, CmpExe> readyQueue;
+	//put all processes into createQueue
 	for(int i=0;i<n;i++){
-		jobOrder[i] = 0;
-		jobState[i] = STATE_WAITING;	
-		runningTime[i] = 0;
-
-		CreateQueue.push(job[i]);
-		ReadyQueue.push(job[i]);
+		createQueue.push(&job[i]);
 	}
-	printf("Create queue:\n");
-	while(!CreateQueue.empty()){
-		Job job = CreateQueue.top();
-		printf("Job %s ready %d exe %d\n", job.name.c_str(), job.readyTime, job.executionTime);
-		CreateQueue.pop();
-	}
-
-	printf("Ready queue:\n");
-	while(!ReadyQueue.empty()){
-		Job job = ReadyQueue.top();
-		printf("Job %s ready %d exe %d\n", job.name.c_str(), job.readyTime, job.executionTime);
-		ReadyQueue.pop();
-	}
+	wakeup(0);
+	setCpu(getpid(), 0);
+	//schudule all jobs
 	while(jobFinish<n){
-		//if any job finishes
-		if(jobNow==-1){
-			
-		}
-		int nextJob = -1;
-		int nextTime = 1000000;
+	
+		while(!createQueue.empty()){
+			Job *nextJob = createQueue.top();
+			//spawn processes, set priority to lowest to idle them
+			if(nextJob->readyTime<=timeNow){
+				createQueue.pop();
+				readyQueue.push(nextJob);
+				double beginTime = getTime();
+				int workTime = nextJob->executionTime;
+				int pid = fork();
+				if(pid!=0){
+					nextJob->pid = pid;
+					//printf("spawn %s\n", nextJob->name.c_str());
+					setCpu(pid, 1);
+					idle(pid);
+				}
+				else{
+					printf("%s %d\n", nextJob->name.c_str() , getpid());
+					for(int t=0;t<workTime;t++){
+						//printf("%s %d\n", nextJob->name.c_str() , t);
+						waitTimeQuantum;
+					}
+					//TODO: print message to kernel
+					double endTime = getTime();
+    				char buffer[512];
+    				sprintf(buffer, "[Project1] %d %.9f %.9f", getpid(), beginTime, endTime);
+    				logger(buffer, strlen(buffer));
+					exit(0);
+				}
+			}
+			else{
+				break;
+			}
+		}//end while createQueue
 
-		for(int i=0;i<n;i++){
-			switch(jobState[i]){
-				case STATE_WAITING:
-					//job has not been forked
-					if(timeNow>=job[i].readyTime){
-						//fork
-						int pid = fork();
-						if(pid!=0){
-							job[i].pid = pid;
-							jobState[i] = STATE_READY;
-							setPriority(pid, 99);
-							if(job[i].executionTime<nextTime){
-								nextJob = i;
-								nextTime = job[i].executionTime;
-							}
-    							printf("%s %d\n", job[i].name.c_str(), pid);
-						}
-						else{
-							for(int i=0;i<job[i].executionTime;i++){
-								waitTimeQuantum;
-							}
-							//TODO: print message to kernel
-							return;
-						}
-					}
-					break;
-				case STATE_READY:
-					//job created, but put to wait
-					if(job[i].executionTime<nextTime){
-						nextJob = i;
-						nextTime = job[i].executionTime;
-					}
-					break;
-				case STATE_RUNNING:
-					//job started
-					if(runningTime[i]>=job[i].executionTime){
-						waitpid(job[i].pid, NULL, 0);
-						printf("Job %d finished at i = %d\n", i, timeNow);
-						jobNow = -1;
-						jobState[i] = STATE_FINISH;
-						jobFinish++;
-					}
-					else{
-						runningTime[i]++;
-					}
-					break;
-					/*
-					//job has been paused
-					//no need for non preemptive SJF.
-				case STATE_PAUSE:
-					break;
-					*/
-				case STATE_FINISH:
-					//job finished
-					break;
-				default:
-					//fprintf(stderr, "WTF\n");
-					break;
+		//process readyQueue
+		if(jobNow==NULL){
+			if(!readyQueue.empty()){
+				jobNow = readyQueue.top();
+				readyQueue.pop();
+				//printf("wakeup %s will execute %d\n", jobNow->name.c_str(), jobNow->executionTime);
+				wakeup(jobNow->pid);
 			}
 		}
-		//if no job is running and there are jobs ready
-		if(jobNow==-1&&nextJob!=-1){
-			jobNow = nextJob;
-			jobState[nextJob] = STATE_RUNNING;
-			setPriority(job[nextJob].pid, 0);
+
+		if(jobNow!=NULL){
+			if(jobNow->runningTime>=jobNow->executionTime){
+				waitpid(jobNow->pid, NULL, 0);
+				jobNow = NULL;
+				jobFinish++;
+			}
+			else{
+				jobNow->runningTime++;
+			}
 		}
+
+
 		//next quantum
+		//printf("main %d\n", timeNow);
 		waitTimeQuantum;
 		timeNow++;
 	}
