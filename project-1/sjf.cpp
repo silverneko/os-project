@@ -66,7 +66,6 @@ void sjfSchedule(int n, vector<Job> job){
 	//in the beginning, all process are in the createQueue
 	//when the readyTime has come, a process is put to the readyQueue
 	//when no process is running, the first process in the readyQueue will start to execute
-
 	int timeNow = 0;
 	int jobFinish = 0;
 	Job *jobNow = NULL;
@@ -88,14 +87,14 @@ void sjfSchedule(int n, vector<Job> job){
 				createQueue.pop();
 				readyQueue.push(nextJob);
 				int workTime = nextJob->executionTime;
+				double beginTime = getTime();
 				int pid = fork();
 				if(pid!=0){
-					setCpu(pid, 1);
-					//idle(pid);
 					nextJob->pid = pid;
+					setCpu(pid, 1);
+					idle(pid);
 				}
 				else{
-					double beginTime = getTime();
 					printf("%s %d\n", nextJob->name.c_str(), getpid());
 					for(int t=0;t<workTime;t++){
 						waitTimeQuantum;
