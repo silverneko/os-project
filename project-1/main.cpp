@@ -44,6 +44,7 @@ int main(int argc, char * argv[]) {
     case SJF:
       break;
     case PSJF:
+      psjfSchedule(joblist);
       break;
   }
   return 0;
