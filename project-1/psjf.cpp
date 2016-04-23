@@ -39,7 +39,7 @@ namespace leo{
 			priority = prior;
 			next = NULL;
 		}
-		bool operator<(const Process& another){
+		bool operator<(const Process& another) const {
 			return readyTime < another.readyTime;
 		}
 
