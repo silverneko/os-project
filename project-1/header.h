@@ -29,9 +29,12 @@ public:
   std::string name;
   int readyTime;
   int executionTime;
+  int runningTime;
   int pid;
   Job() {}
-  Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {}
+  Job(const std::string &n, int r, int e) : name(n), readyTime(r), executionTime(e) {
+  	runningTime = 0;
+  }
 };
 
 namespace {
@@ -55,5 +58,7 @@ void logger(const char buffer[], int len) {
 void fifoSchedule(int N, std::vector<Job> jobs);
 void psjfSchedule(const std::vector<Job>& jobs);
 void rrSchedule(int N, std::vector<Job> jobs);
+
+void sjfSchedule(int N, std::vector<Job> jobs);
 
 #endif
