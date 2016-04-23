@@ -6,7 +6,7 @@ CXXFLAGS += -D DEMO
 endif
 
 target = main
-objects = main.o fifo.o rr.o psjf.o
+objects = main.o fifo.o rr.o sjf.o psjf.o
 
 .PHONY: all clean
 
