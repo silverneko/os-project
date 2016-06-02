@@ -235,9 +235,9 @@ namespace leo{
 			return;
 		}
 		else{
-			assignPriority(0, process->priority);
-
 			double startTime = getTime();
+			assignPriority(0, process->priority);
+			
 			int time = process->remainTime;
 			for(int i=0; i<time; i++){
 				waitTimeQuantum;
