@@ -1,0 +1,1 @@
+cmd_/home/hane/GIT/OS/os-project/project-2/slave_device/slave_device.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hane/GIT/OS/os-project/project-2/slave_device/slave_device.ko /home/hane/GIT/OS/os-project/project-2/slave_device/slave_device.o /home/hane/GIT/OS/os-project/project-2/slave_device/slave_device.mod.o

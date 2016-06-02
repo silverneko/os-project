@@ -1,0 +1,1 @@
+cmd_/home/hane/GIT/OS/os-project/project-2/master_device/master_device.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/hane/GIT/OS/os-project/project-2/master_device/master_device.ko /home/hane/GIT/OS/os-project/project-2/master_device/master_device.o /home/hane/GIT/OS/os-project/project-2/master_device/master_device.mod.o
