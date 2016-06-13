@@ -13,7 +13,7 @@ To use it, please:
 3.follow the input instrutions in the spec, 
 i.e.
 ./master ../data/file1_in mmap
-./slave ../data/file1_out fcntl 127.0.0.1
+./slave ../data/file1_out mmap 127.0.0.1
 
 Make sure that you are under the path "./user_program" when you execute user programs.
 Though the execution order of user program "master" and "slave" does not matter,

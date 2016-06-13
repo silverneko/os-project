@@ -1,4 +1,4 @@
 git add *
 git status
-git commit -m "adding psjf"
+git commit -m "slave mmap done"
 git push origin master

@@ -11,6 +11,8 @@
 
 #define PAGE_SIZE 4096
 #define BUF_SIZE 512
+#define MMAP_SIZE PAGE_SIZE*100
+
 int main (int argc, char* argv[])
 {
 	char buf[BUF_SIZE];
@@ -28,7 +30,7 @@ int main (int argc, char* argv[])
 	strcpy(file_name, argv[1]);
 	strcpy(method, argv[2]);
 	strcpy(ip, argv[3]);
-
+	
 	if( (dev_fd = open("/dev/slave_device", O_RDWR, 0666)) < 0)//should be O_RDWR for PROT_WRITE when mmap()
 	{
 		perror("failed to open /dev/slave_device\n");
@@ -40,14 +42,18 @@ int main (int argc, char* argv[])
 		perror("failed to open input file\n");
 		return 1;
 	}
-
+	
 	if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
 	{
 		perror("ioclt create slave socket error\n");
 		return 1;
 	}
 
-
+	char *src;
+	char *dst;
+	size_t offset = 0;
+	size_t device_seek = 0;
+	int round = 0;
 	switch(method[0])
 	{
 		case 'f'://fcntl : read()/write()
@@ -57,6 +63,35 @@ int main (int argc, char* argv[])
 				write(file_fd, buf, ret); //write to the input file
 				file_size += ret;
 			}while(ret > 0);
+			break;
+		case 'm':
+			while(1){
+				round ++;
+				src = mmap(NULL, MMAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, dev_fd, device_seek);
+				ret = ioctl(dev_fd, 0x12345678, 0);
+				device_seek += ret;
+				
+				if(ret == 0)
+					break;				
+				else if(ret < MMAP_SIZE){
+					//for(i=0; i<ret; i++)
+					//	printf("%c", src[i]);
+					posix_fallocate(file_fd, offset, ret);
+					dst = mmap(NULL, ret, PROT_READ|PROT_WRITE, MAP_SHARED, file_fd, offset);
+					memcpy(dst, src, ret);
+					offset += ret;
+					break;
+				}
+				else{
+					//for(i=0; i<ret; i++)
+					//	printf("%c", src[i]);
+					posix_fallocate(file_fd, offset, ret);
+					dst = mmap(NULL, MMAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, file_fd, offset);
+					memcpy(dst, src, MMAP_SIZE);
+					offset += MMAP_SIZE;
+				}				
+			}
+			file_size = offset;
 			break;
 	}
 

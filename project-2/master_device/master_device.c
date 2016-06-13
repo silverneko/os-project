@@ -29,6 +29,7 @@
 #define master_IOCTL_CREATESOCK 0x12345677
 #define master_IOCTL_MMAP 0x12345678
 #define master_IOCTL_EXIT 0x12345679
+
 #define BUF_SIZE 512
 #define MMAP_SIZE PAGE_SIZE*100
 
@@ -163,14 +164,12 @@ static int vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf){
 
 int master_close(struct inode *inode, struct file *filp)
 {
-
 	kfree(userdata);
 	return 0;
 }
 
 int master_open(struct inode *inode, struct file *filp)
 {
-	
 	userdata = kzalloc(MMAP_SIZE, GFP_KERNEL);
 	return 0;
 }

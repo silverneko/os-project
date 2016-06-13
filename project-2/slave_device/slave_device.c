@@ -29,9 +29,8 @@
 #define slave_IOCTL_MMAP 0x12345678
 #define slave_IOCTL_EXIT 0x12345679
 
-
 #define BUF_SIZE 512
-
+#define MMAP_SIZE PAGE_SIZE*100
 
 
 
@@ -50,14 +49,24 @@ extern char *inet_ntoa(struct in_addr *in); //DO NOT forget to kfree the return 
 static int __init slave_init(void);
 static void __exit slave_exit(void);
 
+void vm_open(struct vm_area_struct *vma);
+void vm_close(struct vm_area_struct *vma);
+static int vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf);
+
 int slave_close(struct inode *inode, struct file *filp);
 int slave_open(struct inode *inode, struct file *filp);
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param);
 int receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
+int slave_mmap(struct file *filp, struct vm_area_struct *vm);
 
 static mm_segment_t old_fs;
 static ksocket_t sockfd_cli;//socket to the master server
 static struct sockaddr_in addr_srv; //address of the master server
+
+static char *userdata;
+char socket_buf[BUF_SIZE];
+int socket_bufSeek = 0;
+int socket_bufRemain = 0;
 
 //file operations
 static struct file_operations slave_fops = {
@@ -65,7 +74,14 @@ static struct file_operations slave_fops = {
 	.unlocked_ioctl = slave_ioctl,
 	.open = slave_open,
 	.read = receive_msg,
-	.release = slave_close
+	.release = slave_close,
+	.mmap = slave_mmap
+};
+
+struct vm_operations_struct vm_ops = {
+	.open	= vm_open,
+	.close	= vm_close,
+	.fault	= vm_fault
 };
 
 //device info
@@ -98,14 +114,26 @@ static void __exit slave_exit(void)
 	debugfs_remove(file1);
 }
 
+void vm_open(struct vm_area_struct *vma){
+}
+void vm_close(struct vm_area_struct *vma){
+}
+static int vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf){
+	vmf->page = virt_to_page(vma->vm_pgoff<<PAGE_SHIFT);
+	get_page(vmf->page);
+
+	return 0;
+}
 
 int slave_close(struct inode *inode, struct file *filp)
 {
-	return 0;
+	kfree(userdata);
+	return 0;	
 }
 
 int slave_open(struct inode *inode, struct file *filp)
 {
+	userdata = kzalloc(MMAP_SIZE, GFP_KERNEL);
 	return 0;
 }
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
@@ -126,7 +154,8 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
 
-
+	int nowNum;
+	int temp;
 	switch(ioctl_num){
 		case slave_IOCTL_CREATESOCK:// create socket and connect to master
 
@@ -159,9 +188,27 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:
-
+			memcpy(userdata, socket_buf+socket_bufSeek, socket_bufRemain);
+			nowNum = socket_bufRemain;
+			while(nowNum < MMAP_SIZE){
+				temp = krecv(sockfd_cli, socket_buf, sizeof(socket_buf), 0);
+				if(temp == 0)
+					break;
+				if(nowNum+temp < MMAP_SIZE){
+					socket_bufRemain = 0;
+					socket_bufSeek = 0;
+					memcpy(userdata+nowNum, socket_buf, temp);
+					nowNum += temp;
+				}
+				else{
+					socket_bufRemain = nowNum + temp - MMAP_SIZE;
+					socket_bufSeek = temp - socket_bufRemain;
+					memcpy(userdata+nowNum, socket_buf, socket_bufSeek);	
+					nowNum = MMAP_SIZE;
+				}	
+			}
+			ret = nowNum;
 			break;
-
 		case slave_IOCTL_EXIT:
 			if(kclose(sockfd_cli) == -1)
 			{
@@ -192,13 +239,26 @@ int receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp )
 	size_t len;
 	len = krecv(sockfd_cli, msg, sizeof(msg), 0);
 	if(copy_to_user(buf, msg, len))
-		return -ENOMEM;
+		return -ENOMEM;	
 	return len;
 }
 
+int slave_mmap(struct file *filp, struct vm_area_struct *vm){
+	//pgoff: page number of our buffer
+
+	vm->vm_pgoff = (virt_to_phys(userdata)) >> PAGE_SHIFT;
+	remap_pfn_range(vm, vm->vm_start, vm->vm_pgoff, vm->vm_end-vm->vm_start, vm->vm_page_prot);
+	vm->vm_ops = &vm_ops;
+	vm->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
+	//poke the page, generate page fault
+	vm_open(vm);
+
+	return 0;
+}
 
 
 
 module_init(slave_init);
 module_exit(slave_exit);
 MODULE_LICENSE("GPL");
+
