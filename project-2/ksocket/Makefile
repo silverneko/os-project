@@ -13,8 +13,8 @@
 
 obj-m := ksocket.o
 #ksocket-objs := xxx.o yyy.o
-#KVER := 3.18.28
-KVER  := $(shell uname -r)
+KVER := 3.18.28
+#KVER  := $(shell uname -r)
 KDIR  := /lib/modules/$(KVER)/build
 KMOD  := /lib/modules/$(KVER)/kernel
 PWD   := $(shell pwd)

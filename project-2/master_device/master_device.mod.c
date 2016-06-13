@@ -49,4 +49,4 @@ __attribute__((section(".modinfo"))) =
 "depends=ksocket";
 
 
-MODULE_INFO(srcversion, "F62453B1BE6F3BDA12DE5CB");
+MODULE_INFO(srcversion, "729FB6A16ACAF4C2D936E2C");

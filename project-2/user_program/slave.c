@@ -95,6 +95,7 @@ int main (int argc, char* argv[])
 			break;
 	}
 
+	ioctl(dev_fd, 0);
 
 
 	if(ioctl(dev_fd, 0x12345679) == -1)// end receiving data, close the connection
